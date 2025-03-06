@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import "./style.css";
+import "./team-picker-style.css";
 
 const AWANLLM_API_KEY = import.meta.env.VITE_API_KEY;;
 const llm_model = "Meta-Llama-3-70B-Instruct";
@@ -40,13 +40,16 @@ function formatResponseText(response: string): string {
   return response;
 }
 
-async function fetchData(user_message: string): Promise<string> {
+async function callLLM(system_prompt: string, prompt: string): Promise<string> {
   try {
-    const url = "https://api.awanllm.com/v1/completions"; // Replace with your actual API URL
+    const url = "https://api.awanllm.com/v1/chat/completions"; // API endpoint
 
     const payload = {
       model: llm_model,
-      prompt: user_message,
+      messages: [
+        { role: "system", content: system_prompt },
+        { role: "user", content: prompt }, 
+      ],
       repetition_penalty: 1.1,
       temperature: 0.7,
       top_p: 0.9,
@@ -57,7 +60,7 @@ async function fetchData(user_message: string): Promise<string> {
 
     const headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${AWANLLM_API_KEY}`, // Replace with your actual API key
+      Authorization: `Bearer ${AWANLLM_API_KEY}`, 
     };
 
     const response = await fetch(url, {
@@ -71,7 +74,14 @@ async function fetchData(user_message: string): Promise<string> {
     }
 
     const data = await response.json();
-    const llm_response = data.choices?.[0]?.text || "No response from AI.";
+
+    console.log("LLM response data:", data);
+
+    // Correct way to extract the response
+    const llm_response = data.choices?.[0]?.message?.content || "No response from AI.";
+
+    console.log("LLM response:", llm_response);
+
 
     return llm_response;
   } catch (error: any) {
@@ -80,6 +90,121 @@ async function fetchData(user_message: string): Promise<string> {
   }
 }
 
+
+
+
+async function classifyIntent(userMessage: string): Promise<string> {
+  const system_prompt = `You are an intent classifier. Given a user input, classify it into one of the following intents:
+    - team_inquiry
+    - affirmative
+    - negative
+    - player_list_provided
+    - player_update
+    - digression
+    - fallback (if it doesn't match any intent)
+
+    Respond only with the intent name.`;
+
+  const response = await callLLM(system_prompt, userMessage);
+  return response;
+}
+
+// Define an interface for the team picker conversation context.
+interface TeamPickerContext {
+  history: Array<{ user: string; bot: string }>;
+  state: "initial" | "awaitingConfirmation" | "awaitingPlayerList" | "awaitingCurrentPlayers" | "flowProvided";
+  teams?: { teamA: string; teamB: string };
+  players?: { [team: string]: string[] };
+}
+
+
+export async function handleTeamPicker(userInput: string, context: TeamPickerContext): Promise<string> {
+  // Normalize the input.
+  const input = userInput.trim();
+
+  // Use classifyIntent to determine the intent behind the input.
+  let intent: string = "";
+  try {
+    intent = await classifyIntent(input);
+  } catch (error) {
+    // Fallback if intent classification fails.
+    intent = "";
+  }
+
+  // State machine to handle different stages of the conversation.
+  if (context.state === "initial") {
+    // Expect a question like: "Which of these teams will win: Team A or Team B"
+    const teamRegex = /teams? will win:\s*(.*?)\s+or\s+(.*)/i;
+    const match = userInput.match(teamRegex);
+    if (match) {
+      // Extract team names and update context.
+      context.teams = { teamA: match[1].trim(), teamB: match[2].trim() };
+      context.state = "awaitingConfirmation";
+      return "Are you using the current players?";
+    } else {
+      return "Please ask which teams will win by mentioning them like: 'Which of these teams will win: Team A or Team B'?";
+    }
+  } else if (context.state === "awaitingConfirmation") {
+    // Check if the classified intent is affirmative (e.g., "yes", "yeah", "sure") or negative.
+    if (intent === "affirmative") {
+      // Process using current players.
+      context.state = "flowProvided";
+      const prompt = `Predict the winner between ${context.teams?.teamA} and ${context.teams?.teamB} using current players.`;
+      const apiResponse = await callLLM("TeamPrediction", prompt);
+      return apiResponse;
+    } else if (intent === "negative") {
+      // Request the list of players for both teams.
+      context.state = "awaitingPlayerList";
+      return `Please provide the list of players for ${context.teams?.teamA} and ${context.teams?.teamB}.`;
+    } else {
+      return "Please answer with something like 'yes' or 'no'. Are you using the current players?";
+    }
+  } else if (context.state === "awaitingPlayerList") {
+    // Expect the user to provide a list of players.
+    if (input.toLowerCase().includes("list of players")) {
+      // After receiving the list, ask for the current players.
+      context.state = "awaitingCurrentPlayers";
+      return "Please provide the current players for both teams.";
+    } else {
+      return "I didn't catch that. Could you please provide the list of players for both teams?";
+    }
+  } else if (context.state === "awaitingCurrentPlayers") {
+    // Handle potential digressions or player updates.
+    if (input.toLowerCase().includes("list of players")) {
+      // User is requesting to see the players.
+      const playersResponse = await callLLM("GetPlayers", `Fetch players for ${context.teams?.teamA} and ${context.teams?.teamB}.`);
+      // Simulate storing fetched players.
+      context.players = {
+        [context.teams?.teamA || "Team A"]: ["Player A1", "Player A2"],
+        [context.teams?.teamB || "Team B"]: ["Player B1", "Player B2"],
+      };
+      return playersResponse;
+    } else if (input.toLowerCase().includes("change players")) {
+      // Handle a digression where the user wants to update players.
+      if (context.players && context.teams) {
+        // Simulate updating player information (e.g., replacing "Player C" with "Player D").
+        // In a real implementation, you would parse the user input to extract these details.
+        return `Updated players for ${context.teams.teamB}: Replaced player C with player D.`;
+      }
+      return "No player data available to update.";
+    } else {
+      // Assume the user provided current players information.
+      context.state = "flowProvided";
+      const prompt = `Predict the winner between ${context.teams?.teamA} and ${context.teams?.teamB} using the provided current players: ${userInput}.`;
+      const prediction = await callLLM("TeamPrediction", prompt);
+      return prediction;
+    }
+  } else if (context.state === "flowProvided") {
+    return "The prediction flow has already been provided. Let me know if you need any further adjustments.";
+  }
+  return "I'm not sure how to proceed. Can you please clarify your request?";
+}
+
+
+const teamContext: TeamPickerContext = {
+  history: [],
+  state: "initial",
+};
 
 const ChatApp: React.FC = () => {
   const [chatInput, setChatInput] = useState("");
@@ -130,7 +255,7 @@ const ChatApp: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetchData(message);
+      const response = await handleTeamPicker(message, teamContext);
       const formattedResponse = formatResponseText(response);
 
       const newEntry: ChatEntry = {

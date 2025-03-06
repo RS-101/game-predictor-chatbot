@@ -1,6 +1,6 @@
 import { Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home";
-import ChatBot from "./pages/ChatBot";
+import ChatBot from "./pages/team-picker-chat-bot";
 
 const App = () => {
   return (

@@ -25,4 +25,4 @@ dist-ssr
 
 
 .env
-/model/model_venv/*
+model/model_venv/

@@ -160,9 +160,26 @@ async function checkIfPlayersExists(teamA: string, teamB: string): Promise<boole
 async function getPlayersFromTeams(teamA: string, teamB: string): Promise<{ [team: string]: string[] }> {
   // Idea: Call database to get current players on provided teams
 
+
+  const system_prompt = `Given the names of two teams, 
+  return 5 current players for each team. Return only and nothing but the players as two separate comma-separated lists with '|' separating the two teams. 
+  Example Behavior:
+
+  User: Lakers and Bulls?
+  Chatbot: Kareem Abdul-Jabbar, Elgin Baylor, Kobe Bryant, Wilt Chamberlain, Serbien Vlade Divac | Josh Giddey, Lonzo Ball, Matas Buzelis, Coby White, Jalen Smith`;
+
+  const userMessage = `${teamA} and ${teamB}`;
+
+  const stringWithPlayers = await callLLM(system_prompt, userMessage);
+
+
+  const listOfPlayers = stringWithPlayers.split("|").map(team => team.trim()); // Trim spaces
+
+  console.log("list of all provided players:", listOfPlayers);
+
   const players = {
-    [teamA]: ["Player A1", "Player A2"],
-    [teamB]: ["Player B1", "Player B2"],
+    [teamA]: listOfPlayers[0].split(",").map(player => player.trim()),
+    [teamB]: listOfPlayers[1].split(",").map(player => player.trim()),
   };
 
   return players;
@@ -172,7 +189,13 @@ async function predictOnPlayers(players: { [team: string]: string[] }): Promise<
 
   // Idea: Call model to get prediction based on players
   const system_prompt = `Just guess the winner between two teams based on the provided players. Provide the prediction as a short sentence.`;
-  const userMessage = `${players}`;
+  var userMessage = `The players for the teams are: `;
+
+  Object.keys(players).forEach((team) => {
+    userMessage += `${team} with players: ${players[team].join(", ")}`;
+  });
+
+  console.log("User message to prediction:", userMessage);
 
   const response = await callLLM(system_prompt, userMessage);
   return response;
@@ -181,10 +204,30 @@ async function predictOnPlayers(players: { [team: string]: string[] }): Promise<
 async function updatePlayer(prompt: string, players: { [team: string]: string[] }): Promise<string> {
 
   // Idea: Call model to get prediction based on players
-  const system_prompt = `please update the players for the teams. Provide the updated players as a comma-separated list in lowercase.`;
-  const userMessage = `current players ${players}` + "user input:" + prompt;
+  const system_prompt = `The user provides the current players for two teams, as well as a prompt on who to replace. 
+      Please update the players for the teams based on the prompt.
+      Return only and nothing but the players as two separate comma-separated lists with '|' separating the two teams. 
+
+      Example Behavior:
+      User: Lakers with players: Kareem Abdul-Jabbar, Elgin Baylor, Kobe Bryant, Wilt Chamberlain, Serbien Vlade Divac, 
+      Bulls with players: Josh Giddey, Lonzo Ball, Matas Buzelis, Coby White, Jalen Smith. Prompt: Replace Kobe Bryant with Michael Jordan.
+      
+      Chatbot: kareem abdul-jabbar, elgin baylor, michael jordan, wilt chamberlain, serbien vlade divac | 
+        josh giddey, lonzo ball, matas buzelis, coby white, jalen smith`;
+
+
+  var userMessage = ``;
+
+  Object.keys(players).forEach((team) => {
+    userMessage += `${team} with players: ${players[team].join(", ")}`;
+  });
+
+  userMessage += ". Prompt:" + prompt;
+
+  console.log("User message for updating players:", userMessage);
 
   const response = await callLLM(system_prompt, userMessage);
+
   return response;
 }
 

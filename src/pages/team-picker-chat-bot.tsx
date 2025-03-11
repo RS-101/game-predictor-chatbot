@@ -145,18 +145,24 @@ async function extractPlayers(userMessage: string): Promise<string> {
   return response;
 }
 
-async function checkIfTeamExists(teamA: string, teamB: string): Promise<boolean> { 
+async function checkIfTeamExists(teamA: string, teamB: string): Promise<boolean> {
+  
+  teamA = teamA.toLowerCase();
+  teamB = teamB.toLowerCase();
   // Idea: Call database to check if teams exist
   await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
   return true;
 }
 
 async function checkIfPlayersExists(teamA: string, teamB: string): Promise<boolean> {
+
+    
+  teamA = teamA.toLowerCase();
+  teamB = teamB.toLowerCase();
   // Idea: Call database to check if players exist
   await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
   return true;
 }
-
 async function getPlayersFromTeams(teamA: string, teamB: string): Promise<{ [team: string]: string[] }> {
   // Idea: Call database to get current players on provided teams
 

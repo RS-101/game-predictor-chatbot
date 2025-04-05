@@ -1,78 +1,70 @@
-To get a **Vite + React + TypeScript** project downloaded from **GitHub** to run on your machine, follow these steps:  
+# Game Predictor Chatbot
 
-### 1️⃣ **Clone the Repository**  
-Open your terminal and run:  
-```sh
-git clone <repository-url>
-```
-Replace `<repository-url>` with the actual GitHub repo URL.  
+**A prototype chatbot designed for coaches and team managers to predict player matchups and assist with roster setup, developed using the Design Thinking framework.**
 
-### 2️⃣ **Navigate to the Project Folder**  
-```sh
-cd <project-folder>
-```
-Replace `<project-folder>` with the actual folder name.  
+---
 
-### 3️⃣ **Install Dependencies**  
-Run the following command inside the project directory:  
-```sh
+## 🚀 Features
+
+- Predicts player matchups based on team composition
+- Assists coaches with roster setup and planning
+- Interactive chatbot interface
+- Built using Vite, React, and TypeScript
+
+---
+
+## 🛠️ Tech Stack
+
+- **React 19**
+- **TypeScript**
+- **Vite** for lightning-fast development
+
+---
+
+## 📦 Installation
+
+Ensure you have **Node.js >=18** installed.
+
+```bash
+# Clone the repository
+git clone https://github.com/RS-101/game-predictor-chatbot.git
+
+# Navigate to the project folder
+cd game-predictor-chatbot
+
+# Install dependencies
 npm install
 ```
-or  
-```sh
-yarn install
-```
-or  
-```sh
-pnpm install
-```
-(depending on which package manager the project uses).  
 
-### 4️⃣ **Run the Development Server**  
-Start the Vite development server with:  
-```sh
+---
+
+## 🧪 Development
+
+To start the development server:
+
+```bash
 npm run dev
 ```
-or  
-```sh
-yarn dev
+---
+
+## 📁 Project Structure
+
 ```
-or  
-```sh
-pnpm dev
+src/
+├── pages/
+│   ├── game-predictor.tsx         # Main UI component
+│   ├── game-predictor-logic.ts    # Core chatbot logic
+│   └── game-predictor.css         # Component styles
+...
 ```
-This should launch the project at `http://localhost:5173/` by default.  
+---
+
+## 📄 License
+
+This project is currently under a **private license** — feel free to reach out if you'd like to collaborate or learn more.
 
 ---
 
-## 🔥 **Troubleshooting Issues**  
+## ✨ Acknowledgements
 
-### **1. Missing `.env` File**  
-Some projects require an **environment variables file** (`.env`). Check the repo’s README to see if you need to create one.  
-
-### **2. Port Already in Use**  
-If `5173` is taken, start the server on another port:  
-```sh
-vite --port 3000
-```
-
-### **3. Errors Related to Node.js Version**  
-Ensure you have the correct Node.js version. Check with:  
-```sh
-node -v
-```
-If needed, use **Node Version Manager (nvm)** to install the correct version.
-
-### **4. TypeScript or Dependency Errors**  
-Try:  
-```sh
-rm -rf node_modules package-lock.json && npm install
-```
-or  
-```sh
-yarn install --force
-```
-
----
-
-Let me know if you hit any specific errors! 🚀
+Developed using the Design Thinking framework to ensure user-centric functionality and rapid prototyping.
